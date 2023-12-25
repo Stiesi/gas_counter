@@ -4,5 +4,4 @@ deta
 #requests
 streamlit
 plotly
-pydantic-settings
 #scipy
