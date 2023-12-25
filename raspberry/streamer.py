@@ -1,15 +1,13 @@
 import time
 import deta
 import hmc5883l_jj as hmc
+import streamlit as st
 
 base_name="counter"
 collection_id ='gas_recorder'
-#url = f"https://database.deta.sh/v1/{collection_id}/{base_name}"
-#detakey = "tNc9YQjG_WxQyAy9BXn95guCqPveZJwLsxbg2FrJW"
-deta_key = "a07vrepk2zd_1mzeU3kyeWbr8Qtf8WAx9UM5A2y7E9Kx"
 
-#datum = {'X-API-Key':deta_key,'Content-Type': 'application/json'}
-#auth = f'X-API-Key : {deta_key}'
+deta_key = st.secrets['db_credentials']
+
 
 from deta import Deta
 
@@ -23,7 +21,6 @@ def copy_png(drive):
         drive.put('/jens/countday_s.png',path='/tmp/countday_s.png')
     except:
         print('error copying files to deta')
-#deta_key = os.environ.get('eurex_base',_settings.settings.eurex_base)
 
 # Connect to Deta Base with your Data Key
 deta = Deta(deta_key)
