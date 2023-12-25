@@ -1,0 +1,8 @@
+smbus2
+#pandas
+deta
+#requests
+streamlit
+plotly
+pydantic-settings
+#scipy
