@@ -24,6 +24,15 @@
             "run",
             "${file}",
             ],
-            }
+            },
+        {
+                "name": "Python: current file",
+                "type": "python",
+                "request": "launch",
+                "program": "${file}",
+                "console": "integratedTerminal",
+                "justMyCode": true 
+            },
+    
     ]
 }

@@ -17,7 +17,7 @@ class hmc_dummy:
     def __init__(self,min=-1000,max=1000):
         self.min=min
         self.max=max
-        self.latest_datum = (0,0,0)
+        self.latest_datum = (1000,0,0)
         self.latest_nonecount=0
         self.timetochange = time.time()+random.randint(3,10)
         self.xyz=(0,0,0)
@@ -40,9 +40,16 @@ class hmc_dummy:
         return x,y,z,self.latest_nonecount
 
     def axes(self):
-        x=self.randomvalues()
-        y=self.randomvalues()
-        z=self.randomvalues()
+        
+        x,y,z = self.latest_datum
+        amp = math.sqrt(x*x+y*y+z*z)
+        theta_new = math.atan2(y,x) + math.pi/180*20 
+        #if theta_new>math.pi:
+        #    theta_new-=math.pi*2
+        
+        x=amp * math.cos(theta_new)
+        y=amp * math.sin(theta_new)
+        z=0
         return (x,y,z)
 
 class hmc5883l:
