@@ -1,0 +1,20 @@
+# Spacefile Docs: https://go.deta.dev/docs/spacefile/v0
+v: 0
+micros:
+  - name: weather_log
+    src: ./
+    engine: python3.9
+    primary: true
+    run: uvicorn weather:app --reload
+    dev: ./venv/bin/uvicorn main:app --reload
+    actions:
+      - id: "update_weather"
+        name: "UpdateWeather"
+        description: "updates weather data for location"
+        trigger: "schedule"
+        default_interval: "0/5 * * * *"
+    #presets:
+    #  api_keys: true
+    #include:      
+    #  - src/
+    #  - ./
