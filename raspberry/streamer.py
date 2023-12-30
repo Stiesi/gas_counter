@@ -1,12 +1,20 @@
 import time
 import hmc5883l_jj as hmc
 import math
+import os
 import streamlit as st
 
-base_name="counter"
+import settings as _settings
+
+base_name="counter" # TODO rename to trigger!!
 collection_id ='gas_recorder'
 
-deta_key = st.secrets['db_credentials']
+try:
+    deta_key = os.environ.get('db_credentials',_settings.settings.db_credentials)
+except:
+    print('set Environment variable >>> db_credentials <<< to access key for Deta Space API')  
+
+#deta_key = st.secrets['db_credentials']
 
 
 from deta import Deta
@@ -39,7 +47,7 @@ def copy_png(drive):
 # Connect to Deta Base with your Data Key
 mydeta = Deta(deta_key)
 
-db = mydeta.Base("counter")
+db = mydeta.Base(base_name)
 drive = mydeta.Drive("graphs")
 
 

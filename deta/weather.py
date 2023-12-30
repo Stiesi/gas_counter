@@ -149,38 +149,6 @@ class Weather(BaseWeather):
         self.update()
         self.put()
 
-################################.   Schedule. ###############
-
-@app.post("/__space/v0/actions",tags=['schedule'],description='update weather from scheduled action')
-async def events(event: dict):
-#{
-#  "event": {
-#    "id": "cleanup",
-#    "trigger": "schedule"
-#  }
-#}    
-    # update all prices
-    if event['event']['id']=='update_prices':
-        ret = await update_weather()
-    return ret
-
-@app.post("/update_weather",tags=['weather','schedule'],description='update weather from scheduled action')
-async def update_weather():
-    # update weather from symbols in db_prices, if date < today
-    #today = datetime.datetime.today().replace(hour=0,minute=0,second=0,microsecond=0).toordinal()
-    
-    
-    data = db.fetch(limit=1).items[0] # get any data
-    weather = Weather(**data)
-    # get update and save
-    weather.push()
-    
-        #lastdate = entry['lastdate']
-        #if today > lastdate:
-        #out = await update_symbol(entry['key'])
-        #print(out)
-    return {'updated weather timestamp': weather.timestamp}
-
 
 if __name__=='__main__':
     import time

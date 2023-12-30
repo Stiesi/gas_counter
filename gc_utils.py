@@ -3,6 +3,7 @@ import numpy as np
 import streamlit as st
 from deta import Deta
 import time
+import datetime
 import plotly.graph_objects as go
 
 from deta import Deta
@@ -11,7 +12,8 @@ dbkey = st.secrets['db_credentials']
 
 deta = Deta(dbkey)
 
-db = deta.Base("counter")
+db = deta.Base("trigger")
+db_count = deta.Base("counter_dev")
 drive = deta.Drive('graphs')
 
 def find_peaks(a):
@@ -23,7 +25,7 @@ def find_peaks(a):
     ix_change = np.where(dachange<0)
     return ix_change[0]+1
 
-def get_counter_history(lookback=600,angstep=90):
+def get_counter_history(lookback=600):
     '''
 
     Get Data of magnetic values from deta Base
@@ -64,19 +66,21 @@ def create_peakfindings(df,angstep):
     -------
     df  DataFrame
         history data of magnetic field with peak findings
-    ix  int
-        number of identified rotations in history
+    ixpeak int
+        index of any peak in signal
+    ix_relevant  int
+        index of identified rotations in history
     '''
     #df['angs'] = df.ang.rolling(window=average).mean() 
     # use only peaks
     ixpeak = find_peaks(df.ang.values)
     df['peaks']=df.ang.loc[ixpeak]
 
-    df['diff']=df.peaks.dropna().diff().abs()
-    ix = df.loc[df['diff']>angstep].index
-    df['step']=0
-    df.step.loc[ix]=100
-    return df,ixpeak,ix
+    df['diff']=df.peaks.dropna().diff().abs() # differences of two sequential peaks
+    ix_relevant = df.loc[df['diff']>angstep].index # only peaks > threshold
+    #df['step']=0
+    #df.step.loc[ix_relevant]=100
+    return df,ixpeak,ix_relevant
 
 
 def plot_magneto(df,angstep):
@@ -94,7 +98,7 @@ def plot_magneto(df,angstep):
         plotly figure
     '''
 
-    df,ixpeak,ix = create_peakfindings(df,angstep)
+    df,ixpeak,ix_relevant = create_peakfindings(df,angstep)
 
     layout = go.Layout(title='Gas Counter Magnetic Components over Time',
                     yaxis=dict(title='Magnetic Field'),
@@ -133,7 +137,7 @@ def plot_magneto(df,angstep):
                             #line=dict(color=colors[2])
                             ))
 
-    for ip in ix:
+    for ip in ix_relevant:
         fig.add_annotation(x=df.time.iloc[ip], y = df['ang'].iloc[ip],
                            yref='y2',
                            text="Step",
@@ -152,7 +156,7 @@ def plot_magneto(df,angstep):
         yref="y domain",
         x=0.7,
         y=-0.15,
-        text=f"Number of Peaks Found: {len(ix)}",
+        text=f"Number of Peaks Found: {len(ix_relevant)}",
         # If axref is exactly the same as xref, then the text's position is
         # absolute and specified in the same coordinates as xref.
         #axref="x domain",
@@ -208,3 +212,33 @@ def show_pngs():
             fb.write(png.read())
         png.close()
         st.image(file,caption=file[:-6])
+
+def save_counts(lookback = 1000,angstep =100):
+    df = get_counter_history(lookback=lookback)
+    df,ixpeak,ix_relevant = create_peakfindings(df,angstep)
+    if len(ix_relevant)<25:
+        savedd = [dict(key=row.key) for index,row in df.loc[ix_relevant].iterrows()]
+        resp = db_count.put_many(savedd) # can save up to 25 items
+    else: # do single puts
+        resp = [db_count.put(dict(key=row.key)) for index,row in df.loc[ix_relevant].iterrows()]
+    #x=heartbeat()
+    return resp
+
+def heartbeat():
+    now=datetime.datetime.now().timestamp()
+    df = get_counter_history(lookback=100) # check last 100 s
+    #  diff to latest datum
+    lasttime = df['time'].max()
+    delta = now - lasttime.timestamp()
+    if delta > 30 : #after 30 secs
+        return 1 # alarm
+    else:
+        return 0
+
+
+
+if __name__=='__main__':
+    savd = save_counts()
+    pass
+
+

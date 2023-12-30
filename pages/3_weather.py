@@ -14,9 +14,9 @@ def plot_weather(weather):
                     xaxis=dict(title='Date'),
                     )
     fig = go.Figure(layout=layout)
-    fig.add_trace(go.Scatter(x=weather.index,y=weather.tmin,name='Temperature min'))
-    fig.add_trace(go.Scatter(x=weather.index,y=weather.tavg,name='Temperature'))
-    fig.add_trace(go.Scatter(x=weather.index,y=weather.tmax,name='Temperature max'))
+    fig.add_trace(go.Scatter(x=weather.index,y=weather.tmin,name='Temperature min',opacity=0.2))
+    fig.add_trace(go.Scatter(x=weather.index,y=weather.tavg,name='Temperature',opacity=0.2))
+    fig.add_trace(go.Scatter(x=weather.index,y=weather.tmax,name='Temperature max',opacity=0.2))
 
     df = weather
     df['date'] = pd.to_datetime(df.index)
@@ -28,15 +28,23 @@ def plot_weather(weather):
     return fig
 
 
+def get_datetime(date):
+    return datetime.combine(date,datetime.min.time())
 
 
 st.title('History Weather for Jens')
 #gcu.show_pngs()
-start = datetime(2023, 1, 1)
-end = datetime(2023, 12, 31)
+col1,col2 =st.columns((1,1))
+with col1:
+    start = st.date_input('Start',datetime.today()-timedelta(days=365),format="DD.MM.YYYY")
+with col2:
+    end = st.date_input('End',"today",format="DD.MM.YYYY")
+
+#start = datetime(2023, 1, 1)
+#end = datetime(2023, 12, 31)
 
 home = Point(52.3212, 9.7455, 52 )
-data = Daily(home,start,end)
+data = Daily(home,get_datetime(start),get_datetime(end)) # needs datetime type
 weather=data.fetch()
 
 

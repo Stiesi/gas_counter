@@ -6,4 +6,7 @@ streamlit
 plotly
 pydantic
 meteostat
+#rrdtool. # needs headers from lib ??
+pydantic-settings
+
 #scipy
