@@ -1,5 +1,12 @@
 import streamlit as st
+import os
+import site
+dir = os.path.dirname(__file__)
+basedir=dir.replace('pages','deta')
+site.addsitedir(basedir)
+
 import gc_utils as gcu
+import gc_plots as gp
 import time
 
 st.title('Check Sensitivity of Step Detection')
@@ -35,9 +42,10 @@ while True:
         #     if check==1:
         #         st.error('Trigger not Running')
         #     else:
-        #         st.markdown(':green[Triggers are Running]')
-        st.plotly_chart(gcu.plot_magneto(df,angstep))
+        #         st.markdown(':green[Triggers are Running]')        
+        df,ixpeak,ix_relevant = gcu.create_peakfindings(df,angstep) 
+        st.plotly_chart(gp.plot_magneto(df,ixpeak,ix_relevant))
 
         #st.markdown(f'Peaks found: {len(ix)}')
-        st.plotly_chart(gcu.plot_polar(df))
+        st.plotly_chart(gp.plot_polar(df))
     time.sleep(5.)

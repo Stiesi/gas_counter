@@ -1,11 +1,25 @@
 from fastapi import FastAPI
 
-# write credentials to env/env file (no quotes in value! for key = values)
-import settings as _settings
+
 import gc_utils as gcu
 
 app = FastAPI()
 ################################.   Schedule. ###############
+@app.get("/heartbeat")
+async def heartbeat():
+    status = gcu.heartbeat()
+    if status == 0:
+        return {'message': 'OK'}
+    else:
+        return {'message': 'Error',
+                'status': status}
+
+@app.get("/savecounts")
+async def save_counts(lookback:int=1000):
+    resp = gcu.save_counts(lookback=lookback)
+    return {'message': 'OK',
+            'status': resp}
+
 
 @app.post("/__space/v0/actions",tags=['schedule'],description='update counts from trigger')
 async def events(event: dict):
@@ -18,7 +32,7 @@ async def events(event: dict):
     # update all prices
     if event['event']['id']=='update_counts':
         ret = await gcu.save_counts()
-    if event['event']['id']=='check_hearbeat':
+    if event['event']['id']=='check_heartbeat':
         ret = await gcu.heartbeat()    
     return ret
 
@@ -30,7 +44,7 @@ async def check_heartbeat():
     # check if trigger data is running
     # send message, if fails
     pass
-    alarm=0
+    alarm=gcu.heartbeat()
 #
     return {'message': alarm}
 

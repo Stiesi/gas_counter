@@ -1,18 +1,23 @@
 # Spacefile Docs: https://go.deta.dev/docs/spacefile/v0
 v: 0
 micros:
-  - name: weather_log
+  - name: gascount_logger
     src: ./
     engine: python3.9
     primary: true
-    run: uvicorn weather:app --reload
+    run: uvicorn main:app --reload
     dev: ./venv/bin/uvicorn main:app --reload
     actions:
-      - id: "update_weather"
-        name: "UpdateWeather"
-        description: "updates weather data for location"
+      - id: "update_counts"
+        name: "Update Gas Count"
+        description: "updates gas counter out of trigger data "
         trigger: "schedule"
         default_interval: "0/5 * * * *"
+      - id: "check_heartbeat"
+        name: "checktrigger"
+        description: "check if trigger is running up to date"
+        trigger: "schedule"
+        default_interval: "0/2 * * * *"
     #presets:
     #  api_keys: true
     #include:      

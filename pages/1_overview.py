@@ -1,6 +1,15 @@
 import streamlit as st
+import os
+# 
+import site
+dir = os.path.dirname(__file__)
+basedir=dir.replace('pages','deta')
+site.addsitedir(basedir)
 import gc_utils as gcu
+import gc_plots as gp
 
 st.title('History Overview for Jens')
-gcu.show_pngs()
+gcu.update_pngs()
+gp.show_pngs()
+
 
