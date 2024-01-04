@@ -110,6 +110,19 @@ def heartbeat():
         return 1 # alarm
     else:
         return 0
+    
+def get_count_dev(trigger_step=0.1):
+    # get trigger counts
+    data = db_count.fetch()
+
+    df = pd.DataFrame.from_dict(data.items)
+    
+    #df['mag']=np.linalg.norm(df[['x','y','z']],axis=1)
+    #df['ang']=np.arctan2(df['x'],df['y'])*180/np.pi
+    df['timestamp']=pd.to_datetime(df.key.apply(int),unit='s',utc=True)
+    df['trigger']=trigger_step
+    return df
+
 
 def update_pngs():
     '''
