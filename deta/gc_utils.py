@@ -17,7 +17,11 @@ except:
 deta = Deta(deta_key)
 
 db = deta.Base("trigger")
-db_count = deta.Base("counter_dev")
+db_count_dev = deta.Base("counter_dev")
+db_count_m = deta.Base("counter_10min")
+db_count_h = deta.Base("counter_1h")
+db_count = deta.Base("counter")
+
 drive = deta.Drive('graphs')
 
 def find_peaks(a):
@@ -93,11 +97,50 @@ def save_counts(lookback = 1000,angstep =100):
     df,ixpeak,ix_relevant = create_peakfindings(df,angstep)
     if len(ix_relevant)<0:
         savedd = [dict(key=row.key) for index,row in df.loc[ix_relevant].iterrows()]
-        resp = db_count.put_many(savedd) # can save up to 25 items
+        resp = db_count_dev.put_many(savedd) # can save up to 25 items
     else: # do single puts
-        resp = [db_count.put(dict(key=row.key)) for index,row in df.loc[ix_relevant].iterrows()]
+        resp = [db_count_dev.put(dict(key=row.key)) for index,row in df.loc[ix_relevant].iterrows()]
     #x=heartbeat()
     return resp
+
+def group_signal(df,h_resolution,unit='H'):
+    '''
+    summarize counts to numbers
+
+    unit 
+    '''
+    assert unit in ['min','H','D','M']
+    assert 'timestamp' in df.columns
+    df['time'] = pd.to_datetime(df.timestamp,unit='s')
+    dfg = (df.groupby([pd.Grouper(key='time', 
+                                  #freq='W-MON',
+                                  freq=f'{h_resolution}{unit}',
+                                  ),])['trigger']
+        .sum() 
+        .reset_index())
+    return dfg
+
+def get_10min():
+    # read counter_dev data with (unregular)
+    data = db_count_m.fetch()
+    df = pd.DataFrame.from_dict(data.items)    
+    if not df.empty:
+        df['timestamp']=pd.to_datetime(df.key.apply(int),unit='s',utc=True)
+    return df
+    
+
+def update_10min():
+    # signal as derived from trigger with unregular entries
+    # get last existing entry in db 10 min
+    lastitem = db_count_m.fetch(limit=1,desc=True) # check??
+    df = get_count_dev()
+    # grouped to 10 min sums
+    dfg = group_signal(df,10,'min')
+    resp = [db_count_m.put(dict(key=row.key,usage=row.count)) for index,row in dfg.iterrows()]
+    return resp
+
+
+
 
 def heartbeat():
     # check if trigger is running by checking last timestamps
@@ -111,9 +154,12 @@ def heartbeat():
     else:
         return 0
     
-def get_count_dev(trigger_step=0.1):
+def get_count_dev(trigger_step=0.1,start_date=None):
     # get trigger counts
-    data = db_count.fetch()
+    if start_date is None:
+        data = db_count_dev.fetch()
+    else:
+        data = db_count_dev.fetch({'key?ge':start_date})
 
     df = pd.DataFrame.from_dict(data.items)
     

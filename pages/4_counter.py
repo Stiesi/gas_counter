@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 
 
-def plot_count(df):
+def plot_count(dfg):
     '''
     plot counting history
 
@@ -27,9 +27,6 @@ def plot_count(df):
     fig  object
         plotly figure
     '''
-    df['counter']=df.trigger.cumsum()
-
-    dfg = group_signal(df)
 
 
     layout = go.Layout(title='Gas Counter from Triggers over Time',
@@ -57,6 +54,48 @@ def plot_count(df):
                             )
     return fig
 
+def plot_count24(dfg):
+    '''
+    plot counting history
+
+    Parameters:
+    ----------
+    df  DataFrame
+        history data of triggers
+
+    Return:
+    -------
+    fig  object
+        plotly figure
+    '''
+
+
+    layout = go.Layout(title='Gas Counter from Triggers over Time',
+                    yaxis=dict(title='usage in m^3/h'),                    
+                    yaxis2=dict(title='Counter in m^3',
+                                overlaying='y',
+                                side='right'),
+                    xaxis=dict(title='time',
+                                )
+                                )
+    colors=['grey','burlywood','wheat','red','green']
+    fig = go.Figure(layout=layout)
+
+    fig.add_traces(go.Bar(x=dfg.time, y = dfg['trigger'],
+                            name="consumption",
+                            yaxis='y1',
+                            #line=dict(color=colors[0]),
+                            )
+                            )
+    fig.add_traces(go.Scatter(x=dfg.time, y = dfg['counter'],
+                            name='counter',
+                            line=dict(color=colors[0]),
+                            yaxis='y2',
+                            ),
+                            )
+    return fig
+
+
 def generate_signal(signal=1, length=100):
     '''
     create a signals of events in time
@@ -72,23 +111,30 @@ def generate_signal(signal=1, length=100):
 
     return df
 
-def group_signal(df):
-    '''
-    summarize counts to numbers
-    '''
-    
-    df['time'] = pd.to_datetime(df.timestamp,unit='s')
-    dfg = (df.groupby([pd.Grouper(key='time', 
-                                  #freq='W-MON',
-                                  freq='H',
-                                  ),])['trigger']
-        .sum() 
-        .reset_index())
-    return dfg
 
 st.title('History Overview for Jens')
 
-#df = generate_signal()
-df = gcu.get_count_dev()
+#h_resolution=st.selectbox('Sum Period in Hours',options=[1,4,8,24],index=0)
+h_24 = st.toggle("Daily Sum",value=False)
+if h_24:
+    h_resolution=24
+else:
+    h_resolution=1
 
-st.plotly_chart(plot_count(df))
+df = gcu.get_count_dev()
+if df.empty:  
+    df = generate_signal() # artifical signal
+df['counter']=df.trigger.cumsum()
+#df['time'] = pd.to_datetime(df.timestamp,unit='s',utc=True)
+now = datetime.now()
+
+start = now-timedelta(days=1)
+df24 = df.loc[df.key>str(int(start.timestamp()))]
+df24g = gcu.group_signal(df24,5,'min')
+df24g['counter'] = df24g.trigger.cumsum()
+st.plotly_chart(plot_count24(df24g))
+
+
+dfg = gcu.group_signal(df,h_resolution)
+
+st.plotly_chart(plot_count(dfg))
