@@ -16,11 +16,11 @@ except:
 
 deta = Deta(deta_key)
 
-db = deta.Base("trigger")
-db_count_dev = deta.Base("counter_dev")
-db_count_m = deta.Base("counter_10min")
-db_count_h = deta.Base("counter_1h")
-db_count = deta.Base("counter")
+db = deta.Base("trigger") # continuously 8 h
+db_count_dev = deta.Base("counter_dev")# from trigger , expires 1 Month
+#db_count_m = deta.Base("counter_10min") #not used
+#db_count_h = deta.Base("counter_1h") #not used
+db_count = deta.Base("counter") # daily , update daily from 
 
 drive = deta.Drive('graphs')
 
@@ -103,42 +103,64 @@ def save_counts(lookback = 1000,angstep =100):
     #x=heartbeat()
     return resp
 
-def group_signal(df,h_resolution,unit='H'):
+def group_signal(df,resolution,unit='H',groupby='trigger'):
     '''
     summarize counts to numbers
 
     unit 
     '''
-    assert unit in ['min','H','D','M']
+    assert unit in ['min','H','D','W','M','Y']
     assert 'timestamp' in df.columns
+    assert groupby in df.columns
     df['time'] = pd.to_datetime(df.timestamp,unit='s')
     dfg = (df.groupby([pd.Grouper(key='time', 
                                   #freq='W-MON',
-                                  freq=f'{h_resolution}{unit}',
-                                  ),])['trigger']
+                                  freq=f'{resolution}{unit}',
+                                  ),])[groupby]
         .sum() 
         .reset_index())
     return dfg
 
-def get_10min():
+def get_daily(start_date=None):
     # read counter_dev data with (unregular)
-    data = db_count_m.fetch()
+    #data = db_count.fetch()
+    if start_date is None:
+        data = db_count.fetch()
+    else:
+        data = db_count.fetch({'key?ge':start_date})
     df = pd.DataFrame.from_dict(data.items)    
     if not df.empty:
         df['timestamp']=pd.to_datetime(df.key.apply(int),unit='s',utc=True)
     return df
     
 
-def update_10min():
-    # signal as derived from trigger with unregular entries
-    # get last existing entry in db 10 min
-    lastitem = db_count_m.fetch(limit=1,desc=True) # check??
-    df = get_count_dev()
-    # grouped to 10 min sums
-    dfg = group_signal(df,10,'min')
-    resp = [db_count_m.put(dict(key=row.key,usage=row.count)) for index,row in dfg.iterrows()]
-    return resp
+def timestamp_tokey(ts:datetime):
+    return str(int(ts.value/1e9))
 
+
+def update_daily(all=False):
+    # signal as derived from trigger with unregular entries
+    # get last existing entry in db daily
+    lastday = db_count.fetch(limit=2,desc=True) # check??
+    ### ACHTUNG Overlap kann Auswertung kaputt machen!!!
+    # besser: ganze Tage ausschneiden: Anfangstag +1 bis letzter Tag -1 mit Gruppierung auswerten, 
+    #         nur diese zufuegen, die sollten immer gleich sein, auch wenn sie ueberschreiben werden
+    # only request new data
+    if not all:
+        try:
+            df = get_count_dev(lastday.items[0].key) # sollte ab Vortag sein
+        except:
+            print('error in reading lastday from count_dev')
+    if all:
+        df = get_count_dev() # alle trigger
+    minstamp = df.timestamp.min()
+    #maxstamp = datetime.datetime(df.timestamp.max().day-1)
+    df_cut = df.loc[df.timestamp>minstamp.replace(hour=23,minute=59,second=59)]
+    # grouped to daily sums
+    dfg = group_signal(df_cut,1,'D')
+    dfg['key']=dfg.time.apply(timestamp_tokey)
+    resp = [db_count.put(dict(key=row.key,usage=row.trigger)) for index,row in dfg.iterrows()]
+    return resp
 
 
 
