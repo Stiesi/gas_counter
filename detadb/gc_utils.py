@@ -163,7 +163,7 @@ def update_daily(all=False):
     df_cut = df.loc[df.timestamp>minstamp.replace(hour=23,minute=59,second=59)]
     # grouped to daily sums
     dfg = group_signal(df_cut,1,'D')
-    dfg['key']=dfg.time.apply(timestamp_tokey)
+    dfg['key']=dfg.timestamp.apply(timestamp_tokey)
     resp = [db_count.put(dict(key=row.key,usage=row.trigger)) for index,row in dfg.iterrows()]
     return resp
 
