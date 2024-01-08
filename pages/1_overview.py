@@ -5,7 +5,7 @@ import site
 dir = os.path.dirname(__file__)
 basedir=dir.replace('pages','deta')
 site.addsitedir(basedir)
-import gc_utils as gcu
+from detadb import gc_utils as gcu
 import gc_plots as gp
 
 st.title('History Overview for Jens')

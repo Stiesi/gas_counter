@@ -5,13 +5,21 @@ import site
 dir = os.path.dirname(__file__)
 basedir=dir.replace('pages','deta')
 site.addsitedir(basedir)
-import gc_utils as gcu
+from detadb import gc_utils as gcu
 import gc_plots as gp
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 
+
+@st.cache_data
+def get_counter(start_date=None):
+    return gcu.get_count_dev(start_date=start_date)
+
+@st.cache_data
+def get_daily(start_date=None):
+    return(gcu.get_daily(start_date=start_date))
 
 def plot_count(dfg):
     '''
@@ -40,7 +48,7 @@ def plot_count(dfg):
     colors=['grey','burlywood','wheat','red','green']
     fig = go.Figure(layout=layout)
 
-    fig.add_traces(go.Bar(x=dfg.time, y = dfg['usage'],
+    fig.add_traces(go.Bar(x=dfg.timestamp, y = dfg['usage'],
                             text=dfg['usage'],
                             name="consumption",
                             yaxis='y1',
@@ -84,13 +92,13 @@ def plot_count24(dfg):
     colors=['grey','burlywood','wheat','red','green']
     fig = go.Figure(layout=layout)
 
-    fig.add_traces(go.Bar(x=dfg.time, y = dfg['usage'],
+    fig.add_traces(go.Bar(x=dfg.timestamp, y = dfg['usage'],
                             name="consumption",
                             yaxis='y1',
                             #line=dict(color=colors[0]),
                             )
                             )
-    fig.add_traces(go.Scatter(x=dfg.time, y = dfg['counter'],
+    fig.add_traces(go.Scatter(x=dfg.timestamp, y = dfg['counter'],
                             name='counter',
                             line=dict(color=colors[0]),
                             yaxis='y2',
@@ -126,7 +134,8 @@ st.title('History Overview for Jens')
 
 #h_resolution=st.selectbox('Sum Period in Hours',options=[1,4,8,24],index=0)
 
-df = gcu.get_count_dev()
+#df = gcu.get_count_dev()
+df = get_counter()
 if df.empty:  
     df = generate_signal() # artifical signal
 df['counter']=df.trigger.cumsum()
@@ -159,12 +168,12 @@ with col11:
     unitname = st.radio('Sum',index=0,options=['Day','Week','Month','Year'])
     h_w_resolution=1
     unit=dict(Day='D',Week='W',Month='M',Year='Y')[unitname]
-    dfh = gcu.get_daily()
+    dfh = get_daily()
     dfg = gcu.group_signal(dfh,h_w_resolution,unit=unit,groupby='usage')
 with col22:
     st.plotly_chart(plot_count(dfg))
 
 update=st.button('update daily')
 if update:
-    resp = gcu.update_daily(all=True)
+    resp = gcu.update_daily(all=False)
     st.write(resp)

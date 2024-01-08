@@ -4,7 +4,7 @@ from deta import Deta
 import time
 import datetime
 
-import settings as _settings
+from detadb import settings as _settings
 import os
 
 # write credentials to env/env file (no quotes in value! for key = values)
@@ -112,8 +112,8 @@ def group_signal(df,resolution,unit='H',groupby='trigger'):
     assert unit in ['min','H','D','W','M','Y']
     assert 'timestamp' in df.columns
     assert groupby in df.columns
-    df['time'] = pd.to_datetime(df.timestamp,unit='s')
-    dfg = (df.groupby([pd.Grouper(key='time', 
+    #df['time'] = pd.to_datetime(df.timestamp,unit='s')
+    dfg = (df.groupby([pd.Grouper(key='timestamp', 
                                   #freq='W-MON',
                                   freq=f'{resolution}{unit}',
                                   ),])[groupby]
@@ -127,7 +127,7 @@ def get_daily(start_date=None):
     if start_date is None:
         data = db_count.fetch()
     else:
-        data = db_count.fetch({'key?ge':start_date})
+        data = db_count.fetch({'key?gt':start_date})
     df = pd.DataFrame.from_dict(data.items)    
     if not df.empty:
         df['timestamp']=pd.to_datetime(df.key.apply(int),unit='s',utc=True)
@@ -141,20 +141,25 @@ def timestamp_tokey(ts:datetime):
 def update_daily(all=False):
     # signal as derived from trigger with unregular entries
     # get last existing entry in db daily
-    lastday = db_count.fetch(limit=2,desc=True) # check??
     ### ACHTUNG Overlap kann Auswertung kaputt machen!!!
     # besser: ganze Tage ausschneiden: Anfangstag +1 bis letzter Tag -1 mit Gruppierung auswerten, 
     #         nur diese zufuegen, die sollten immer gleich sein, auch wenn sie ueberschreiben werden
-    # only request new data
-    if not all:
-        try:
-            df = get_count_dev(lastday.items[0].key) # sollte ab Vortag sein
-        except:
-            print('error in reading lastday from count_dev')
     if all:
         df = get_count_dev() # alle trigger
+    # only request new data
+    else:
+        try:
+            lastday = db_count.fetch(limit=3,desc=True) # check??
+            # df sollte alle Trigger seit dem vorvortag enthalten
+            df = get_count_dev(start_date=lastday.items[-1]['key']) # sollte ab vorVortag sein
+        except:
+            print('error in reading lastday from count_dev')
+    if df.empty:        
+        print('No data to update found')
+        return {}
     minstamp = df.timestamp.min()
     #maxstamp = datetime.datetime(df.timestamp.max().day-1)
+    # alle trigger ab Ende des ersten Tages (Nach Ende vorvortag, also ab Vortag)
     df_cut = df.loc[df.timestamp>minstamp.replace(hour=23,minute=59,second=59)]
     # grouped to daily sums
     dfg = group_signal(df_cut,1,'D')
@@ -181,7 +186,7 @@ def get_count_dev(trigger_step=0.1,start_date=None):
     if start_date is None:
         data = db_count_dev.fetch()
     else:
-        data = db_count_dev.fetch({'key?ge':start_date})
+        data = db_count_dev.fetch({'key?gt':start_date})
 
     df = pd.DataFrame.from_dict(data.items)
     

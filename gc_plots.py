@@ -3,7 +3,6 @@ import plotly.graph_objects as go
 
 
 
-
 def plot_magneto(df,ixpeak,ix_relevant):
     '''
     plot magnetic field history

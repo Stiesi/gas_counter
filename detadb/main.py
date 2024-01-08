@@ -34,6 +34,8 @@ async def events(event: dict):
         ret = await gcu.save_counts()
     if event['event']['id']=='check_heartbeat':
         ret = await gcu.heartbeat()    
+    if event['event']['id']=='update_daily':
+        ret = await gcu.up_counts()
     return ret
 
 

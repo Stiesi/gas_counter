@@ -8,5 +8,6 @@ pydantic
 meteostat
 #rrdtool. # needs headers from lib ??
 pydantic-settings
+streamlit-authenticator
 
 #scipy
