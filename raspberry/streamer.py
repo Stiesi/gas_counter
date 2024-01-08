@@ -1,15 +1,37 @@
 import time
-import deta
 import hmc5883l_jj as hmc
+import math
+import os
 import streamlit as st
 
-base_name="counter"
+import settings as _settings
+
+base_name="counter" # TODO rename to trigger!!
 collection_id ='gas_recorder'
 
-deta_key = st.secrets['db_credentials']
+try:
+    deta_key = os.environ.get('db_credentials',_settings.settings.db_credentials)
+except:
+    print('set Environment variable >>> db_credentials <<< to access key for Deta Space API')  
+
+#deta_key = st.secrets['db_credentials']
 
 
 from deta import Deta
+
+class MagnetField:
+    x: float=0
+    y: float=0
+    z: float=0
+
+    def amplitude(self):
+        return (math.sqrt(self.x*self.x+self.y*self.y+self.z*self.z))
+    def angle(self):
+        return math.atan2(self.y,self.x) * 180 /math.pi
+class Trigger:
+    counter:float=0.
+    magnet_position:int=1
+    
 
 
 def copy_png(drive):
@@ -23,10 +45,10 @@ def copy_png(drive):
         print('error copying files to deta')
 
 # Connect to Deta Base with your Data Key
-deta = Deta(deta_key)
+mydeta = Deta(deta_key)
 
-db = deta.Base("counter")
-drive = deta.Drive("graphs")
+db = mydeta.Base(base_name)
+drive = mydeta.Drive("graphs")
 
 
 #base = deta.Base()

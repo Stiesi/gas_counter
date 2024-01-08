@@ -1,0 +1,7 @@
+deta
+pydantic
+pydantic-settings
+fastapi
+uvicorn
+pandas
+numpy
