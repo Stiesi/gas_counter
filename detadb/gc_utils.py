@@ -3,8 +3,12 @@ import numpy as np
 from deta import Deta
 import time
 import datetime
-
-from detadb import settings as _settings
+from dateutil import tz
+try:
+    from detadb import settings as _settings
+except: 
+    # for deta micro, which starts at no substructure
+    import settings as _settings
 import os
 
 # write credentials to env/env file (no quotes in value! for key = values)
@@ -24,6 +28,10 @@ db_count = deta.Base("counter") # daily , update daily from
 
 drive = deta.Drive('graphs')
 
+# convert timezones
+def convert_tz(dt, current_tz, out_tz):
+    return dt.replace(tzinfo=current_tz).astimezone(tz=out_tz)
+
 def find_peaks(a):
     '''
     find peak and valley values in 1D-array a
@@ -32,6 +40,7 @@ def find_peaks(a):
     dachange = da[:-1]*da[1:]
     ix_change = np.where(dachange<0)
     return ix_change[0]+1
+
 
 def get_counter_history(lookback=600):
     '''
@@ -92,7 +101,7 @@ def create_peakfindings(df,angstep):
 
 
 def save_counts(lookback = 1000,angstep =100):
-    # get count out of trigger and save count timepoints to database "db_count"
+    # get count out of trigger and save count timepoints to database "db_count_dev"
     df = get_counter_history(lookback=lookback)
     df,ixpeak,ix_relevant = create_peakfindings(df,angstep)
     if len(ix_relevant)<0:
@@ -180,7 +189,23 @@ def heartbeat():
         return 1 # alarm
     else:
         return 0
+
+def health_counter():
+    df = get_count_dev()
+    lastdate = df.iloc[-1]
+    now = datetime.datetime.now()
+    to_zone=tz.tzlocal()
+    time_since_last_entry=-lastdate.timestamp.value*1e-9 + now.timestamp()
+    return time_since_last_entry,lastdate.timestamp.astimezone(to_zone)
     
+def health_daily():
+    df = get_daily()
+    lastdate = df.iloc[-1]
+    now = datetime.datetime.now()
+    time_since_last_entry=-lastdate.timestamp.value*1e-9 + now.timestamp()
+    return time_since_last_entry
+
+
 def get_count_dev(trigger_step=0.1,start_date=None):
     # get trigger counts
     if start_date is None:
@@ -192,6 +217,7 @@ def get_count_dev(trigger_step=0.1,start_date=None):
     
     #df['mag']=np.linalg.norm(df[['x','y','z']],axis=1)
     #df['ang']=np.arctan2(df['x'],df['y'])*180/np.pi
+    to_zone = tz.tzlocal()
     df['timestamp']=pd.to_datetime(df.key.apply(int),unit='s',utc=True)
     df['trigger']=trigger_step
     return df

@@ -9,6 +9,7 @@ from detadb import gc_utils as gcu
 import gc_plots as gp
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
+from dateutil import tz
 import numpy as np
 import pandas as pd
 
@@ -130,14 +131,19 @@ def generate_signal(signal=1, length=100):
     return df
 
 
+
+
 st.title('History Overview for Jens')
 
 #h_resolution=st.selectbox('Sum Period in Hours',options=[1,4,8,24],index=0)
 
 #df = gcu.get_count_dev()
+# get all data in trigger counting
+
 df = get_counter()
-if df.empty:  
+if df.empty:
     df = generate_signal() # artifical signal
+    st.warning('Artificial linear signal is used')
 df['counter']=df.trigger.cumsum()
 df['time'] = pd.to_datetime(df.timestamp,unit='s',utc=True)
 # 3600 s at 0.1 m^3 per consequtive steps
@@ -155,8 +161,9 @@ with col1:
     h_w = st.toggle("per hour",value=False)
 with col2:
     st.markdown(f'Counter:   {df.iloc[-1].counter:.1f}')
-with col3:    
-    st.markdown(f'last 24h:  {df24.iloc[-1].counter -df24.iloc[0].counter:.1f}')
+with col3:  
+    if not df24.empty:  
+        st.markdown(f'last 24h:  {df24.iloc[-1].counter -df24.iloc[0].counter:.1f}')
 
 if h_w:
     df24=df24g
@@ -173,7 +180,9 @@ with col11:
 with col22:
     st.plotly_chart(plot_count(dfg))
 
-update=st.button('update daily')
+update=st.button('update databases')
 if update:
+    resp = gcu.save_counts(60*60)    
+    st.write(resp)
     resp = gcu.update_daily(all=False)
     st.write(resp)
