@@ -14,11 +14,11 @@ import numpy as np
 import pandas as pd
 
 
-@st.cache_data
+@st.cache_data(ttl='300s',max_entries=1)
 def get_counter(start_date=None):
     return gcu.get_count_dev(start_date=start_date)
 
-@st.cache_data
+@st.cache_data(ttl='1h',max_entries=1)
 def get_daily(start_date=None):
     return(gcu.get_daily(start_date=start_date))
 
