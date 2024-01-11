@@ -20,6 +20,13 @@ async def save_counts(lookback:int=1000):
     return {'message': 'OK',
             'status': resp}
 
+@app.get("/update_daily")
+async def update_daily(all:bool=False):
+    resp = gcu.update_daily(all=all)
+    return {'message': 'OK',
+            'status': resp}
+
+
 
 @app.post("/__space/v0/actions",tags=['schedule'],description='update counts from trigger')
 async def events(event: dict):
@@ -31,11 +38,11 @@ async def events(event: dict):
 #}    
     # update all prices
     if event['event']['id']=='update_counts':
-        ret = await gcu.save_counts()
+        ret = await save_counts()
     if event['event']['id']=='check_heartbeat':
-        ret = await gcu.heartbeat()    
+        ret = await heartbeat()    
     if event['event']['id']=='update_daily':
-        ret = await gcu.up_counts()
+        ret = await update_daily(all=False)
     return ret
 
 

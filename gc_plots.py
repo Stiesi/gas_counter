@@ -1,5 +1,7 @@
 import streamlit as st
 import plotly.graph_objects as go
+from dateutil import tz
+import pandas as pd
 
 
 
@@ -27,38 +29,42 @@ def plot_magneto(df,ixpeak,ix_relevant):
                                 side='right'))
     colors=['grey','burlywood','wheat','red','green']
     fig = go.Figure(layout=layout)
+    #to_zone = tz.tzlocal()
+    #to_zone = 'Berlin/Europe'
+    #tloc = pd.Timestamp.fromtimestamp(df.time.to_timestamp)
+    tloc = df.time
 
-    fig.add_traces(go.Scatter(x=df.time, y = df['x'], mode = 'lines',
+    fig.add_traces(go.Scatter(x=tloc, y = df['x'], mode = 'lines',
                             name='x',
                             line=dict(color=colors[0]),
                             )
                             )
-    fig.add_traces(go.Scatter(x=df.time, y = df['y'], mode = 'lines', 
+    fig.add_traces(go.Scatter(x=tloc, y = df['y'], mode = 'lines', 
                             line=dict(color=colors[1]),
                             name='y',
                             ))
-    fig.add_traces(go.Scatter(x=df.time, y = df['z'], mode = 'lines', 
+    fig.add_traces(go.Scatter(x=tloc, y = df['z'], mode = 'lines', 
                             line=dict(color=colors[2]),
                             name='z',
                             ))
-    fig.add_traces(go.Scatter(x=df.time, y = df['mag'], mode = 'lines', 
+    fig.add_traces(go.Scatter(x=tloc, y = df['mag'], mode = 'lines', 
                             name='mag',
                             line=dict(color=colors[3]),
                             ))
-    fig.add_traces(go.Scatter(x=df.time, y = df['ang'], mode = 'lines', 
+    fig.add_traces(go.Scatter(x=tloc, y = df['ang'], mode = 'lines', 
                             name='ang',
                             yaxis='y2',
                             line=dict(color=colors[4]),
                             ))
 
-    fig.add_traces(go.Scatter(x=df.time.loc[ixpeak], y = df['ang'].loc[ixpeak], mode = 'markers', 
+    fig.add_traces(go.Scatter(x=tloc.loc[ixpeak], y = df['ang'].loc[ixpeak], mode = 'markers', 
                             name='ang_peak',
                             yaxis='y2',
                             #line=dict(color=colors[2])
                             ))
 
     for ip in ix_relevant:
-        fig.add_annotation(x=df.time.iloc[ip], y = df['ang'].iloc[ip],
+        fig.add_annotation(x=tloc.iloc[ip], y = df['ang'].iloc[ip],
                            yref='y2',
                            text="Step",
                            #yshift=10,

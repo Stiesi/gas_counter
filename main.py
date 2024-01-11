@@ -1,4 +1,5 @@
 import streamlit as st
+from detadb import gc_utils as gcu
 
 st.title('Gas Counter ')
 st.write('By Magnetic Field Measurement on local Raspberrypi')
@@ -36,3 +37,24 @@ if not check_password():
 # Main Streamlit app starts here
 #st.write("Here goes your normal Streamlit app...")
 #st.button("Click me")
+st.markdown('Welcome')
+time_since_last_entry=gcu.health_daily()
+
+if time_since_last_entry> 24*60*60:
+    st.warning(f'daily update not updated since {int(time_since_last_entry)/24*60*60} days')
+else:
+    st.info('Daily update OK')
+
+
+
+time_since_last_entry,laststamp=gcu.health_counter()
+if time_since_last_entry> 200:
+    st.warning(f'Trigger last update {laststamp}')
+else:
+    st.info('Trigger count OK')
+
+if gcu.heartbeat():
+    st.warning('Streamer is not running')
+else:
+    st.info('Streamer OK')
+
