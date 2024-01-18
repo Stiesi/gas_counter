@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 
-@st.cache_data(ttl='300s',max_entries=1)
+@st.cache_data(ttl='200s',max_entries=1)
 def get_counter(start_date=None):
     return gcu.get_count_dev(start_date=start_date)
 
@@ -140,7 +140,9 @@ st.title('History Overview for Jens')
 #df = gcu.get_count_dev()
 # get all data in trigger counting
 
-df = get_counter()
+now = datetime.now()
+start = now-timedelta(days=2)
+df = get_counter(start_date=str(int(start.timestamp())))
 if df.empty:
     df = generate_signal() # artifical signal
     st.warning('Artificial linear signal is used')
@@ -148,10 +150,8 @@ df['counter']=df.trigger.cumsum()
 df['time'] = pd.to_datetime(df.timestamp,unit='s',utc=True)
 # 3600 s at 0.1 m^3 per consequtive steps
 df['usage'] = (360/df.time.diff().dt.total_seconds()).rolling(window=5).mean()
-now = datetime.now()
-
-start = now-timedelta(days=1)
-df24 = df.loc[df.key>str(int(start.timestamp()))]
+start24 = now-timedelta(days=1)
+df24 = df.loc[df.key>str(int(start24.timestamp()))]
 df24g = gcu.group_signal(df24,60,'min')
 df24g['counter'] = df24g.trigger.cumsum()
 df24g['usage'] = (360/df.time.diff().dt.total_seconds())#.rolling(window=3).mean()
