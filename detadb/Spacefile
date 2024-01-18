@@ -22,7 +22,7 @@ micros:
         name: "checktrigger"
         description: "check if trigger is running up to date"
         trigger: "schedule"
-        default_interval: "0/2 * * * *"
+        default_interval: "0/3 * * * *"
     #presets:
     #  api_keys: true
     #include:      
