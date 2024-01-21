@@ -191,10 +191,13 @@ def heartbeat():
         return 0
 
 def health_counter():
-    df = get_count_dev()
-    lastdate = df.iloc[-1]
     now = datetime.datetime.now()
     to_zone=tz.tzlocal()
+    start = now-datetime.timedelta(days=2)
+    #df = get_counter(start_date=str(int(start.timestamp())))
+
+    df = get_count_dev(start_date=str(int(start.timestamp())))
+    lastdate = df.iloc[-1]
     time_since_last_entry=-lastdate.timestamp.value*1e-9 + now.timestamp()
     return time_since_last_entry,lastdate.timestamp.astimezone(to_zone)
     
